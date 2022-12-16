@@ -31,29 +31,51 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-// Iniciar mi base de datos y mi servidor de express
-const dotenv_1 = __importDefault(require("dotenv"));
-dotenv_1.default.config();
-const models_1 = require("./models");
+exports.disableUser = exports.updateUser = exports.getAllUsers = exports.readUser = exports.createUser = void 0;
 const admin = __importStar(require("firebase-admin"));
-const app_1 = __importDefault(require("./app"));
-const configDBs_1 = __importDefault(require("./models/configDBs"));
-admin.initializeApp();
-// Variables de entorno
-const PORT = process.env.PORT;
-const envRunning = process.env.ENVIRONMENT === 'testing' ? configDBs_1.default.test : configDBs_1.default.dev;
-app_1.default.listen(PORT, () => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const sequelize = (0, models_1.startSequelize)(envRunning.database, envRunning.password, envRunning.host, envRunning.username);
-        yield sequelize.sync({ force: process.env.ENVIRONMENT === 'testing' });
-        console.log('DB and express server are up and running');
-    }
-    catch (error) {
-        console.log(error);
-        process.abort();
-    }
-}));
+const mapToUser = (user) => {
+    const customClaims = (user.customClaims || { role: "" });
+    const role = customClaims.role ? customClaims.role : "";
+    return {
+        uid: user.uid,
+        email: user.email,
+        userName: user.displayName,
+        role,
+        isDisable: user.disabled
+    };
+};
+const createUser = (displayName, email, password, role) => __awaiter(void 0, void 0, void 0, function* () {
+    const { uid } = yield admin.auth().createUser({
+        displayName,
+        email,
+        password
+    });
+    yield admin.auth().setCustomUserClaims(uid, { role });
+    return uid;
+});
+exports.createUser = createUser;
+const readUser = (uid) => __awaiter(void 0, void 0, void 0, function* () {
+    const user = yield admin.auth().getUser(uid);
+    return mapToUser(user);
+});
+exports.readUser = readUser;
+const getAllUsers = () => __awaiter(void 0, void 0, void 0, function* () {
+    const listOfUsers = yield admin.auth().listUsers(10);
+    const users = listOfUsers.users.map(mapToUser);
+    return users;
+});
+exports.getAllUsers = getAllUsers;
+const updateUser = (uid, displayName) => __awaiter(void 0, void 0, void 0, function* () {
+    const user = yield admin.auth().updateUser(uid, {
+        displayName
+    });
+    return mapToUser(user);
+});
+exports.updateUser = updateUser;
+const disableUser = (uid, disabled) => __awaiter(void 0, void 0, void 0, function* () {
+    const user = admin.auth().updateUser(uid, {
+        disabled
+    });
+});
+exports.disableUser = disableUser;

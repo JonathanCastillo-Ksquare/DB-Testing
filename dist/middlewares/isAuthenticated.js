@@ -31,29 +31,36 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-// Iniciar mi base de datos y mi servidor de express
-const dotenv_1 = __importDefault(require("dotenv"));
-dotenv_1.default.config();
-const models_1 = require("./models");
+exports.isAuthenticated = void 0;
 const admin = __importStar(require("firebase-admin"));
-const app_1 = __importDefault(require("./app"));
-const configDBs_1 = __importDefault(require("./models/configDBs"));
-admin.initializeApp();
-// Variables de entorno
-const PORT = process.env.PORT;
-const envRunning = process.env.ENVIRONMENT === 'testing' ? configDBs_1.default.test : configDBs_1.default.dev;
-app_1.default.listen(PORT, () => __awaiter(void 0, void 0, void 0, function* () {
+const isAuthenticated = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    // los JWT viajan en un header llamado Authorization, tiene un schema y unos parametros, en especial el Bearer, aqui se pasa el token, el header tiene que tener authorization, sino existe no mandaron el token y no estan autorizados
+    //No authorization header
+    const { authorization } = req.headers;
+    if (!authorization) {
+        return res.status(401).send({ error: 'No auth' });
+    }
+    //No correct scheme(Bearer)
+    if (!authorization.startsWith("Bearer")) {
+        return res.status(401).send({ error: 'No auth' });
+    }
+    //Check if the token is valid
+    const splittedtoken = authorization.split("Bearer ");
+    if (splittedtoken.length !== 2) {
+        return res.status(401).send({ error: 'No auth' });
+    }
+    //Verify if firebase detects the token because we did not create this token, firebase made the token
+    const token = splittedtoken[1];
     try {
-        const sequelize = (0, models_1.startSequelize)(envRunning.database, envRunning.password, envRunning.host, envRunning.username);
-        yield sequelize.sync({ force: process.env.ENVIRONMENT === 'testing' });
-        console.log('DB and express server are up and running');
+        const decodedToken = yield admin.auth().verifyIdToken(token);
+        res.locals = Object.assign(Object.assign({}, res.locals), { email: decodedToken.email, uid: decodedToken.uid, role: decodedToken.role });
+        return next();
     }
     catch (error) {
         console.log(error);
-        process.abort();
+        return res.status(401).send({ error: 'No auth' });
     }
-}));
+    // si todo esto pasa nuestro usuairo esta correctamente autenticado y tiene derecho a acceder a los recursos
+});
+exports.isAuthenticated = isAuthenticated;

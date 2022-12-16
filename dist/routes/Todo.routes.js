@@ -31,7 +31,7 @@ exports.TodoRouter.get('/:todoId', (req, res) => __awaiter(void 0, void 0, void 
     const todoId = Number(req.params['todoId']);
     if (todoId <= 0) {
         res.status(400);
-        res.send({
+        return res.send({
             error: 'Invalid id'
         });
     }
@@ -53,13 +53,13 @@ exports.TodoRouter.put('/:todoId', (req, res) => __awaiter(void 0, void 0, void 
     const body = req.body;
     if (todoId <= 0) {
         res.status(400);
-        res.send({
+        return res.send({
             error: 'Invalid id'
         });
     }
     const affectedRows = yield (0, Todo_repo_1.updateTodoById)(todoId, body);
     if (!affectedRows) {
-        res.status(400);
+        res.status(500);
         return res.send({
             error: 'Something went wrong!'
         });
@@ -78,16 +78,16 @@ exports.TodoRouter.delete('/:todoId', (req, res) => __awaiter(void 0, void 0, vo
     const todoId = Number(req.params['todoId']);
     if (todoId <= 0) {
         res.status(400);
-        res.send({
+        return res.send({
             error: 'Invalid id'
         });
     }
     const ar = yield (0, Todo_repo_1.deleteTodoById)(todoId);
     if (!ar) {
         res.status(400);
-        res.send({
+        return res.send({
             error: 'Cannot delete'
         });
     }
-    return res.sendStatus(200);
+    return res.sendStatus(204);
 }));

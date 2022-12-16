@@ -2,8 +2,11 @@
 import dotenv from 'dotenv';
 dotenv.config();
 import { startSequelize } from './models';
+import * as admin from "firebase-admin";
 import app from './app';
 import environments from './models/configDBs'
+
+admin.initializeApp();
 
 // Variables de entorno
 const PORT = process.env.PORT;

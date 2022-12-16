@@ -43,7 +43,7 @@ const updateTodoById = (id, todoModel) => __awaiter(void 0, void 0, void 0, func
             is_completed: todoModel.is_completed
         }, {
             where: {
-                id: todoModel.id
+                id: id
             }
         });
         return foo;
